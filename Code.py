@@ -1,6 +1,5 @@
 import pandas as pd
 import sys
-import sympy as sym
 from fractions import Fraction
 MAXI = True
 
@@ -64,14 +63,18 @@ def is_optimal(data):
                 return False  
     return True
 
-def do_it_maxi(data, columns, basic):
+def do_it_maxi(data, columns, basic, EV = None):
     global MAX
     #Entering Variable
-    EV = 1
-    for i in range(1,len(data[0])-1):
-        if (data[0][i])<data[0][EV]:
-            EV = i
-    print("Entering Variable is",columns[EV])
+    if EV==None:
+        EV = 1
+        for i in range(1,len(data[0])-1):
+            if (data[0][i])<data[0][EV]:
+                EV = i
+        print("Entering Variable is",columns[EV])
+    
+    else:
+        print("Entering Variable is",columns[EV])
 
     #Leaving Variable
     LV=-1
@@ -87,11 +90,11 @@ def do_it_maxi(data, columns, basic):
         if ratio>0 and ratio<min_ratio:
             min_ratio = ratio
             LV = r
-    if min_ratio == float('inf'):
-        print("All ratios are negative. No feasible solution") 
-        sys.exit(1)    
     print("Leaving Variable is",basic[LV])
     print("Ratio column is",ratio_col)
+    if min_ratio == float('inf'):
+        print("All ratios are negative. No feasible solution")
+        sys.exit(1)    
     #Change basic variable
     basic[LV] = columns[EV]
 
@@ -107,13 +110,17 @@ def do_it_maxi(data, columns, basic):
             data[row_ind][column_ind] = data[row_ind][column_ind] - mul_fac*data[LV][column_ind]   
             
 
-def do_it_mini(data, columns, basic):
+def do_it_mini(data, columns, basic, EV = None):
     #Entering Variable
-    EV = 1
-    for i in range(1,len(data[0])-1):
-        if (data[0][i])>data[0][EV]:
-            EV = i
-    print("Entering Variable is",columns[EV])
+    if EV==None:
+        EV = 1
+        for i in range(1,len(data[0])-1):
+            if (data[0][i])>data[0][EV]:
+                EV = i
+        print("Entering Variable is",columns[EV])
+
+    else:
+        print("Entering Variable is",columns[EV])
 
     #Leaving Variable
     LV=-1
@@ -128,12 +135,12 @@ def do_it_mini(data, columns, basic):
             min_ratio = ratio
             LV = r
 
+    print("Leaving Variable is",basic[LV])
+    print("Ratio column is",ratio_col)
     if min_ratio == float('inf'):
         print("All ratios are negative. No feasible solution") 
         sys.exit(1)       
 
-    print("Leaving Variable is",basic[LV])
-    print("Ratio column is",ratio_col)
     #Change basic variable
     basic[LV] = columns[EV]
 
@@ -147,7 +154,7 @@ def do_it_mini(data, columns, basic):
         for column_ind in range(len(data[row_ind])):
             data[row_ind][column_ind] = data[row_ind][column_ind] - mul_fac*data[LV][column_ind]   
 
-def make_it_feasiable(mat,columns,basic):
+def make_it_feasible(mat,columns,basic):
     print("Check for minimum distortion")
     #Check Maximum Negative Value
     LV = None
@@ -191,7 +198,7 @@ def make_it_feasiable(mat,columns,basic):
         for column_ind in range(len(data[row_ind])):
             data[row_ind][column_ind] = data[row_ind][column_ind] - mul_fac*data[LV][column_ind]   
 
-def make_it_feasiable2(mat,columns,basic):
+def make_it_feasible2(mat,columns,basic):
 
     for var_ind in range(1,len(basic)):
         ind = columns.index(basic[var_ind])
@@ -201,17 +208,26 @@ def make_it_feasiable2(mat,columns,basic):
             if basic[row_ind] != columns[ind] and mat[row_ind][ind]!=0:
                 mat[row_ind] = [mat[row_ind][col_ind]-mat[var_ind][col_ind]* mat[row_ind][ind]  for col_ind in range(len(columns)) ]
 
-dt = sym.Symbol('dt')
+def multiple_solutions(mat, columns, basic):
+    for i in columns:
+        if i not in basic:
+            if mat[0][columns.index(i)] == 0:
+                print("Multiple solutions due to ", i)
+                return columns.index(i)
+    return None
 
-MAXI = True
-columns = "Z X1	X2	X3	S1	S2	A1	A2	SOLUTION".split()
-rows = "MAX_Z S1 A1 A2".split()
-data = ["1 -6	7	4	0	0	1000	1000	0",
-        "0 2	5	-1	1	0	0	0	18",
-        "0 -1	1	2	0	-1	1	0	14",
-        "0 3	2	2	0	0	0	1	26"]
+MAXI = False
+columns = "Z X1	X2	S1	S2	S3	A1	A2	SOLUTION".split()
+rows = "MIN-Z1 S1 A1 A2 ".split()
+data = ['1 0	0	0	0	0	-1.5	-1	0',
+'0 -1	1	1	0	0	0	0	2',
+'0 6	4	0	-1	0	1	0	24',
+'0 0	1	0	0	-1	0	1	1']
+
+
+
             
-data = [list(map(int,i.split())) for i in data]
+data = [list(map(float,i.split())) for i in data]
 print("################### INITIAL TABULATION ###################")
 count = 0
 
@@ -223,7 +239,16 @@ while(True):
     if is_feasible(data, columns, rows)[0]:
         if is_optimal(data):
             print("Feasible, Optimal")
-            sys.exit(0)
+            if multiple_solutions(data, columns, rows) != None:
+                if input("Do you want to check for multiple solutions? (y/n): ") == "y":
+                    if MAXI:
+                        do_it_maxi(data, columns, rows, multiple_solutions(data, columns, rows))
+                    else:
+                        do_it_mini(data, columns, rows, multiple_solutions(data, columns, rows)) 
+                else: 
+                    sys.exit(0)
+            else: 
+                sys.exit(0)
         else:
             print("Feasible, Not optimal")
             if MAXI:
@@ -234,9 +259,9 @@ while(True):
         status =  is_feasible(data, columns, rows)[1]
         print("Not Feasible", is_feasible(data, columns, rows)[1] )
         if status == "neg_solution":
-            make_it_feasiable(data,columns,rows)
+            make_it_feasible(data,columns,rows)
         elif status == "pivot_issue":    
-            make_it_feasiable2(data,columns,rows)   
+            make_it_feasible2(data,columns,rows)   
         else:
             print("Unknown Error")
             sys.exit(0)    
