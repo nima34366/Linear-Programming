@@ -1,6 +1,7 @@
 import pandas as pd
 import sys
 from fractions import Fraction
+import numpy as np
 MAXI = True
 
 def float_to_mixed_number(value):
@@ -216,20 +217,62 @@ def multiple_solutions(mat, columns, basic):
                 return columns.index(i)
     return None
 
-MAXI = False
-columns = "Z X1	X2	S1	S2	S3	A1	A2	SOLUTION".split()
-rows = "MIN-Z1 S1 A1 A2 ".split()
-data = ['1 0	0	0	0	0	-1.5	-1	0',
-'0 -1	1	1	0	0	0	0	2',
-'0 6	4	0	-1	0	1	0	24',
-'0 0	1	0	0	-1	0	1	1']
+def get_max_frac_index(sols):
+    fracs = []
+    for i in sols:
+        if i>=0:
+            fracs.append(i - int(i))
+        else:
+            fracs.append(i - int(i) + 1)
+    print('Solution column fractions are',fracs)    
+    return fracs.index(max(fracs)) + 1
+
+def get_frac_row(index, mat):
+    row = mat[index].copy()
+    for i in range(len(row)):
+        if row[i] >= 0:
+            row[i] = row[i] - int(row[i])
+        else:
+            row[i] = row[i] - int(row[i]) + 1
+    row = -row
+    print("Fraction row is",row)
+    return np.expand_dims(row, axis=0)
 
 
+def integerize(mat, columns, basic):
+    global g
+    mat = np.array(mat)
+    print('before vstacck')
+    print(mat)
+    mat = np.vstack((mat,get_frac_row(get_max_frac_index(mat[1:,-1]), mat)))
+    print('after vstacck')
+    print(mat)
+    new_column = np.zeros(len(basic)+1)
+    new_column[-1] = 1
+    new_column = np.expand_dims(new_column, axis=-1)
+    columns.append(f'G{g}')
+    columns[-1], columns[-2] = columns[-2], columns[-1]
+    basic.append(f'G{g}')
+    g+=1
+    mat = np.hstack((mat, new_column))
+    mat[:, [-2, -1]] = mat[:, [-1, -2]]
+    print_mat(mat, columns, basic)
+    return mat.tolist(), columns, basic
+    
 
-            
+data = ['1 -1	-1	0	0	0',
+'0 3	2	1	0	5',
+'0 0	1	0	1	2',
+]
+columns = "Z X1	X2	S1	S2	Solution".split()
+rows = "Z S1 S2 ".split()
+MAXI = True
+
+
 data = [list(map(float,i.split())) for i in data]
 print("################### INITIAL TABULATION ###################")
 count = 0
+g = 1
 
 while(True):
     if count!=0:
@@ -240,13 +283,15 @@ while(True):
         if is_optimal(data):
             print("Feasible, Optimal")
             if multiple_solutions(data, columns, rows) != None:
-                if input("Do you want to check for multiple solutions? (y/n): ") == "y":
+                if input("Multiple solutions exist. Continue? (y/n): ") == "y":
                     if MAXI:
                         do_it_maxi(data, columns, rows, multiple_solutions(data, columns, rows))
+                        continue
                     else:
                         do_it_mini(data, columns, rows, multiple_solutions(data, columns, rows)) 
-                else: 
-                    sys.exit(0)
+                        continue
+            if input("Do you want to integerize the solution? (y/n): ") == "y":
+                data, columns, rows = integerize(data, columns, rows)
             else: 
                 sys.exit(0)
         else:
