@@ -87,6 +87,7 @@ def do_it_maxi(data, columns, basic, EV = None):
 
     for r in range(1,len(data)):
         if data[r][EV] == 0:
+            ratio_col.append("inf")
             continue
         ratio = data[r][-1]/data[r][EV]
         ratio_col.append(ratio)
