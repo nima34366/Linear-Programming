@@ -17,22 +17,24 @@ def float_to_mixed_number(value):
         return  f"{integer_part}"
     if not integer_part and fractional_part:
         return  f"{fractional_part}"
+    if not integer_part and not fractional_part:
+        return  f"{integer_part}"
     
-# def print_mat(mat,columns,rows):
-#     data = dict()
-#     for col in range(len(columns)):
-#         data[columns[col]] = [float_to_mixed_number(row[col]) for row in mat]
-
-#     df = pd.DataFrame(data, index = rows[:])   
-#     print(df)    
- 
 def print_mat(mat,columns,rows):
     data = dict()
     for col in range(len(columns)):
-        data[columns[col]] = [row[col] for row in mat]
+        data[columns[col]] = [float_to_mixed_number(row[col]) for row in mat]
 
     df = pd.DataFrame(data, index = rows[:])   
-    print(df)  
+    print(df)    
+ 
+# def print_mat(mat,columns,rows):
+#     data = dict()
+#     for col in range(len(columns)):
+#         data[columns[col]] = [row[col] for row in mat]
+
+#     df = pd.DataFrame(data, index = rows[:])   
+#     print(df)  
 
 def is_feasible(data,columns,basic):
 
@@ -182,7 +184,6 @@ def make_it_feasible(mat,columns,basic):
         except:
             ratios.append("inf")
             pass
-    
     print("Entering Variable is",columns[EV]) 
     print("Ratio row is ",ratios) 
 
@@ -260,14 +261,15 @@ def integerize(mat, columns, basic):
     return mat.tolist(), columns, basic
     
 
-data = ['1 -1	-1	0	0	0',
-'0 3	2	1	0	5',
-'0 0	1	0	1	2',
+columns = "w X1	X2	X3	S1	S2	S3	SOLUTION".split()
+rows = "MIN-W S1 S2 S3 ".split()
+data = [
+'1 1    	-2    	1    	0    	0    	0    	0    ',
+'0 1    	2    	1    	1    	0    	0    	12    ',
+'0 2    	1    	-1    	0    	1    	0    	6    ',
+'0 -1    	3    	0    	0    	0    	1    	9    ',
 ]
-columns = "Z X1	X2	S1	S2	Solution".split()
-rows = "Z S1 S2 ".split()
-MAXI = True
-
+MAXI = False
 
 data = [list(map(float,i.split())) for i in data]
 print("################### INITIAL TABULATION ###################")
